@@ -16,6 +16,9 @@ from .const import (
     CONF_FEED_IN_SENSOR,
     CONF_FEED_IN_TARIFF,
     CONF_ELECTRICITY_PRICE,
+    CONF_ENERGY_SELF_CONSUMPTION_SENSOR,
+    CONF_ENERGY_FROM_GRID_SENSOR,
+    CONF_ENERGY_TO_GRID_SENSOR,
     CONF_YEARLY_BILLS,
     DEFAULT_FEED_IN_TARIFF,
     DEFAULT_ELECTRICITY_PRICE,
@@ -41,6 +44,9 @@ class PVProfitabilityConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_FEED_IN_SENSOR: user_input.get(CONF_FEED_IN_SENSOR, ""),
                     CONF_FEED_IN_TARIFF: user_input[CONF_FEED_IN_TARIFF],
                     CONF_ELECTRICITY_PRICE: user_input[CONF_ELECTRICITY_PRICE],
+                    CONF_ENERGY_SELF_CONSUMPTION_SENSOR: user_input.get(CONF_ENERGY_SELF_CONSUMPTION_SENSOR, ""),
+                    CONF_ENERGY_FROM_GRID_SENSOR: user_input.get(CONF_ENERGY_FROM_GRID_SENSOR, ""),
+                    CONF_ENERGY_TO_GRID_SENSOR: user_input.get(CONF_ENERGY_TO_GRID_SENSOR, ""),
                     CONF_ADDITIONAL_COSTS: [],
                 }
             ]
@@ -65,6 +71,10 @@ class PVProfitabilityConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(
                     CONF_ELECTRICITY_PRICE, default=DEFAULT_ELECTRICITY_PRICE
                 ): vol.Coerce(float),
+                # Energie-Dashboard-Sensoren (optional)
+                vol.Optional(CONF_ENERGY_SELF_CONSUMPTION_SENSOR, default=""): str,
+                vol.Optional(CONF_ENERGY_FROM_GRID_SENSOR, default=""): str,
+                vol.Optional(CONF_ENERGY_TO_GRID_SENSOR, default=""): str,
             }
         )
 
@@ -127,6 +137,9 @@ class PVOptionsFlow(config_entries.OptionsFlow):
                     CONF_FEED_IN_SENSOR: user_input.get(CONF_FEED_IN_SENSOR, ""),
                     CONF_FEED_IN_TARIFF: user_input[CONF_FEED_IN_TARIFF],
                     CONF_ELECTRICITY_PRICE: user_input[CONF_ELECTRICITY_PRICE],
+                    CONF_ENERGY_SELF_CONSUMPTION_SENSOR: user_input.get(CONF_ENERGY_SELF_CONSUMPTION_SENSOR, ""),
+                    CONF_ENERGY_FROM_GRID_SENSOR: user_input.get(CONF_ENERGY_FROM_GRID_SENSOR, ""),
+                    CONF_ENERGY_TO_GRID_SENSOR: user_input.get(CONF_ENERGY_TO_GRID_SENSOR, ""),
                     CONF_ADDITIONAL_COSTS: [],
                 }
             )
@@ -144,6 +157,10 @@ class PVOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(
                     CONF_ELECTRICITY_PRICE, default=DEFAULT_ELECTRICITY_PRICE
                 ): vol.Coerce(float),
+                # Energie-Dashboard-Sensoren (optional)
+                vol.Optional(CONF_ENERGY_SELF_CONSUMPTION_SENSOR, default=""): str,
+                vol.Optional(CONF_ENERGY_FROM_GRID_SENSOR, default=""): str,
+                vol.Optional(CONF_ENERGY_TO_GRID_SENSOR, default=""): str,
             }
         )
         return self.async_show_form(step_id="add_plant", data_schema=schema)

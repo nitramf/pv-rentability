@@ -46,6 +46,25 @@ Eine HACS-kompatible Integration zur Berechnung der **Rentabilität deiner Photo
 | Einspeisevergütung | €/kWh | `0.082` |
 | Strompreis | €/kWh (für Eigenverbrauchsersparnis) | `0.30` |
 
+### Energie-Dashboard-Sensoren (optional, aber empfohlen)
+
+Diese Felder sind im Options-Flow unter **Anlage verwalten** konfigurierbar. Sie werden automatisch aus dem HA-Energie-Dashboard befüllt und haben **Vorrang** vor den einfachen kWh-Sensoren, da sie Eigenverbrauch und Einspeisung exakter trennen.
+
+| Feld | Beschreibung | Typischer Sensor |
+|---|---|---|
+| Eigenverbrauch-Sensor | Direkt gemessene selbstverbrauchte kWh | `sensor.solax_self_used_energy` |
+| Netzbezug-Sensor | Aus dem Netz bezogene kWh | `sensor.energy_net_consumption` |
+| Netzeinspeisung-Sensor | Ins Netz eingespeiste kWh | `sensor.solax_energy_to_grid` |
+
+**Eigenverbrauch-Priorität:**
+1. Direkter Eigenverbrauch-Sensor → präziseste Quelle
+2. Erzeugt − Netzeinspeisung (beide aus Energie-Dashboard)
+3. Erzeugt − Einspeise-Sensor (einfache Sensoren, Fallback)
+
+**Eigenverbrauchsersparnis** = Eigenverbrauch (kWh) × Strompreis (€/kWh)
+— dieser Betrag reduziert die Amortisationszeit erheblich und wird
+**getrennt von der Einspeisevergütung** ausgewiesen.
+
 ### Weitere Anlagen & Ausgaben
 
 Einstellungen → Geräte & Dienste → PV Profitability → **Konfigurieren**:
