@@ -1,0 +1,19 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "PV Profitability einrichten",
+        "description": "Konfiguriere deine Photovoltaik-Anlage(n).",
+        "data": {
+          "name": "Name der Anlage"
+        }
+      }
+    },
+    "error": {
+      "unknown": "Unbekannter Fehler"
+    },
+    "abort": {
+      "already_configured": "Bereits konfiguriert"
+    }
+  }
+}

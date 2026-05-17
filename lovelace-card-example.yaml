@@ -1,0 +1,10 @@
+## Beispiel-Konfiguration für die Lovelace-Karte
+## Diese YAML-Datei in dein Dashboard einfügen (Raw-Konfigurationseditor)
+
+type: custom:pv-profitability-card
+timeline_entity: sensor.pv_verlaufsdaten
+investment_entity: sensor.pv_gesamtinvestition
+revenue_entity: sensor.pv_gesamteinnahmen
+balance_entity: sensor.pv_netto_saldo
+percent_entity: sensor.pv_amortisation
+year_entity: sensor.pv_amortisationsjahr
