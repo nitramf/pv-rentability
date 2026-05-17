@@ -15,5 +15,28 @@
     "abort": {
       "already_configured": "Bereits konfiguriert"
     }
+  },
+  "options": {
+    "step": {
+      "add_yearly_bill": {
+        "title": "Jahresabrechnung – Schritt 1 von 2",
+        "description": "Daten aus der Stromrechnung deines Versorgers",
+        "data": {
+          "year": "Jahr",
+          "grid_kwh_purchased": "Bezogene kWh aus dem Netz",
+          "electricity_cost_total": "Bezahlte Stromrechnung (€)",
+          "electricity_cost_without_pv": "Geschätzte Kosten ohne PV (€)"
+        }
+      },
+      "add_feed_in_bill": {
+        "title": "Jahresabrechnung – Schritt 2 von 2",
+        "description": "Daten aus der Einspeisevergütungs-Abrechnung des Netzbetreibers",
+        "data": {
+          "fed_in_kwh": "Eingespeiste kWh",
+          "feed_in_tariff_actual": "Vergütungssatz (€/kWh)",
+          "feed_in_revenue_total": "Ausgezahlter Gesamtbetrag (€) – überschreibt kWh × Tarif"
+        }
+      }
+    }
   }
 }

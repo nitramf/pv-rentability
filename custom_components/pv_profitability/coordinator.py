@@ -81,19 +81,24 @@ class PVCoordinator(DataUpdateCoordinator):
             total_investment += plant_investment
 
         # ---- Jahresabrechnungen summieren --------------------------------
-        total_bill_revenue = sum(
-            float(b.get("feed_in_revenue", 0)) for b in yearly_bills
+        # Neues Format: annual_benefit = Einspeisevergütung + Stromersparnis
+        # Altes Format (Fallback): feed_in_revenue + electricity_cost
+        total_bill_benefit = sum(
+            float(b.get("annual_benefit")
+                  or float(b.get("feed_in_revenue_total", 0))
+                  + max(0.0,
+                        float(b.get("electricity_cost_without_pv", 0))
+                        - float(b.get("electricity_cost_total", b.get("electricity_cost", 0))))
+                  )
+            for b in yearly_bills
         )
-        total_bill_savings = sum(
-            float(b.get("electricity_cost", 0)) for b in yearly_bills
-        )  # Gezahlte Stromkosten = Ersparnis durch PV
 
         # ---- Laufende Sensor-Einnahmen (falls keine Jahresrechnung) ------
         sensor_revenue = sum(p["total_revenue"] for p in plants_detail)
 
         # Kombiniert: wenn Jahresabrechnungen vorhanden, diese bevorzugen
         if yearly_bills:
-            total_revenue = total_bill_revenue + total_bill_savings
+            total_revenue = total_bill_benefit
         else:
             total_revenue = sensor_revenue
 
@@ -149,8 +154,12 @@ class PVCoordinator(DataUpdateCoordinator):
             sorted_bills = sorted(yearly_bills, key=lambda b: b["year"])
             cumulative = 0.0
             for bill in sorted_bills:
-                cumulative += float(bill.get("feed_in_revenue", 0)) + float(
-                    bill.get("electricity_cost", 0)
+                cumulative += float(
+                    bill.get("annual_benefit")
+                    or float(bill.get("feed_in_revenue_total", 0))
+                    + max(0.0,
+                          float(bill.get("electricity_cost_without_pv", 0))
+                          - float(bill.get("electricity_cost_total", bill.get("electricity_cost", 0))))
                 )
                 if cumulative >= total_investment:
                     return int(bill["year"])
@@ -159,7 +168,12 @@ class PVCoordinator(DataUpdateCoordinator):
             if len(sorted_bills) >= 1:
                 recent = sorted_bills[-min(3, len(sorted_bills)):]
                 avg_annual = sum(
-                    float(b.get("feed_in_revenue", 0)) + float(b.get("electricity_cost", 0))
+                    float(b.get("annual_benefit")
+                          or float(b.get("feed_in_revenue_total", 0))
+                          + max(0.0,
+                                float(b.get("electricity_cost_without_pv", 0))
+                                - float(b.get("electricity_cost_total", b.get("electricity_cost", 0))))
+                          )
                     for b in recent
                 ) / len(recent)
                 if avg_annual > 0:
@@ -189,8 +203,12 @@ class PVCoordinator(DataUpdateCoordinator):
         sorted_bills = sorted(yearly_bills, key=lambda b: b["year"])
 
         for bill in sorted_bills:
-            revenue = float(bill.get("feed_in_revenue", 0)) + float(
-                bill.get("electricity_cost", 0)
+            revenue = float(
+                bill.get("annual_benefit")
+                or float(bill.get("feed_in_revenue_total", 0))
+                + max(0.0,
+                      float(bill.get("electricity_cost_without_pv", 0))
+                      - float(bill.get("electricity_cost_total", bill.get("electricity_cost", 0))))
             )
             cumulative += revenue
             timeline.append(
@@ -214,7 +232,12 @@ class PVCoordinator(DataUpdateCoordinator):
             last_year = sorted_bills[-1]["year"]
             recent = sorted_bills[-min(3, len(sorted_bills)):]
             avg_annual = sum(
-                float(b.get("feed_in_revenue", 0)) + float(b.get("electricity_cost", 0))
+                float(b.get("annual_benefit")
+                      or float(b.get("feed_in_revenue_total", 0))
+                      + max(0.0,
+                            float(b.get("electricity_cost_without_pv", 0))
+                            - float(b.get("electricity_cost_total", b.get("electricity_cost", 0))))
+                      )
                 for b in recent
             ) / len(recent)
 

@@ -89,6 +89,7 @@ class PVOptionsFlow(config_entries.OptionsFlow):
         self._plants = list(config_entry.data.get(CONF_PLANTS, []))
         self._yearly_bills = list(config_entry.data.get(CONF_YEARLY_BILLS, []))
         self._menu_choice = None
+        self._pending_bill: dict = {}
 
     async def async_step_init(self, user_input=None):
         """Hauptmenü der Optionen."""
@@ -174,39 +175,91 @@ class PVOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(step_id="add_cost", data_schema=schema)
 
     # ------------------------------------------------------------------ #
-    # Jahresabrechnungen
+    # Jahresabrechnungen  (zweistufig)
     # ------------------------------------------------------------------ #
     async def async_step_add_yearly_bill(self, user_input=None):
-        """Jahresabrechnung eintragen."""
+        """Schritt 1: Stromabrechnung des Versorgers eintragen."""
         if user_input is not None:
-            # Vorhandenen Eintrag für das Jahr überschreiben
-            year = user_input["year"]
-            self._yearly_bills = [b for b in self._yearly_bills if b["year"] != year]
-            self._yearly_bills.append(
-                {
-                    "year": year,
-                    "electricity_cost": user_input["electricity_cost"],
-                    "feed_in_revenue": user_input["feed_in_revenue"],
-                    "grid_kwh": user_input.get("grid_kwh", 0.0),
-                    "produced_kwh": user_input.get("produced_kwh", 0.0),
-                    "fed_in_kwh": user_input.get("fed_in_kwh", 0.0),
-                }
-            )
-            return await self.async_step_init()
+            # Zwischenspeichern, weiter zu Schritt 2
+            self._pending_bill = {
+                "year": int(user_input["year"]),
+                "grid_kwh_purchased": float(user_input.get("grid_kwh_purchased", 0.0)),
+                "electricity_cost_total": float(user_input["electricity_cost_total"]),
+                "electricity_cost_without_pv": float(
+                    user_input.get("electricity_cost_without_pv", 0.0)
+                ),
+            }
+            return await self.async_step_add_feed_in_bill()
 
         schema = vol.Schema(
             {
                 vol.Required("year"): vol.Coerce(int),
-                vol.Required("electricity_cost", default=0.0): vol.Coerce(float),
-                vol.Required("feed_in_revenue", default=0.0): vol.Coerce(float),
-                vol.Optional("grid_kwh", default=0.0): vol.Coerce(float),
-                vol.Optional("produced_kwh", default=0.0): vol.Coerce(float),
-                vol.Optional("fed_in_kwh", default=0.0): vol.Coerce(float),
+                # Bezogene kWh aus dem Netz laut Zähler
+                vol.Optional("grid_kwh_purchased", default=0.0): vol.Coerce(float),
+                # Tatsächlich bezahlte Stromrechnung (€)
+                vol.Required("electricity_cost_total", default=0.0): vol.Coerce(float),
+                # Geschätzte Kosten ohne PV (optional, für Ersparnis-Berechnung)
+                vol.Optional("electricity_cost_without_pv", default=0.0): vol.Coerce(float),
             }
         )
         return self.async_show_form(
             step_id="add_yearly_bill",
             data_schema=schema,
+            description_placeholders={
+                "hint": "Schritt 1 von 2: Daten aus der Stromrechnung deines Versorgers"
+            },
+        )
+
+    async def async_step_add_feed_in_bill(self, user_input=None):
+        """Schritt 2: Einspeisevergütungs-Abrechnung des Netzbetreibers eintragen."""
+        if user_input is not None:
+            fed_in_kwh = float(user_input.get("fed_in_kwh", 0.0))
+            feed_in_tariff_actual = float(user_input.get("feed_in_tariff_actual", 0.0))
+            # Betrag aus Abrechnung hat Vorrang; sonst aus kWh × Tarif berechnen
+            feed_in_revenue = float(user_input.get("feed_in_revenue_total", 0.0))
+            if feed_in_revenue == 0.0 and fed_in_kwh > 0 and feed_in_tariff_actual > 0:
+                feed_in_revenue = round(fed_in_kwh * feed_in_tariff_actual, 2)
+
+            year = self._pending_bill["year"]
+            self._yearly_bills = [b for b in self._yearly_bills if b["year"] != year]
+            self._yearly_bills.append(
+                {
+                    **self._pending_bill,
+                    "fed_in_kwh": fed_in_kwh,
+                    "feed_in_tariff_actual": feed_in_tariff_actual,
+                    "feed_in_revenue_total": feed_in_revenue,
+                    # Gesamteinnahmen/-ersparnisse dieses Jahres für die Amortisationsrechnung:
+                    # Einspeisevergütung + Ersparnis gegenüber Kosten ohne PV
+                    "annual_benefit": round(
+                        feed_in_revenue
+                        + max(
+                            0.0,
+                            self._pending_bill["electricity_cost_without_pv"]
+                            - self._pending_bill["electricity_cost_total"],
+                        ),
+                        2,
+                    ),
+                }
+            )
+            self._pending_bill = {}
+            return await self.async_step_init()
+
+        schema = vol.Schema(
+            {
+                # Eingespeiste kWh laut Abrechnung des Netzbetreibers
+                vol.Optional("fed_in_kwh", default=0.0): vol.Coerce(float),
+                # Vergütungssatz €/kWh (steht auf der Abrechnung)
+                vol.Optional("feed_in_tariff_actual", default=0.0): vol.Coerce(float),
+                # Ausgezahlter Gesamtbetrag (€) – überschreibt kWh × Tarif wenn angegeben
+                vol.Optional("feed_in_revenue_total", default=0.0): vol.Coerce(float),
+            }
+        )
+        return self.async_show_form(
+            step_id="add_feed_in_bill",
+            data_schema=schema,
+            description_placeholders={
+                "hint": "Schritt 2 von 2: Daten aus der Einspeisevergütungs-Abrechnung des Netzbetreibers"
+            },
         )
 
     # ------------------------------------------------------------------ #
